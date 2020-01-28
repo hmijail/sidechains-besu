@@ -63,7 +63,7 @@ public class CrosschainKeyManager {
 
   public Map<Long, ThresholdKeyGeneration> activeKeyGenerations = new HashMap<>();
 
-  Map<Long, BlsThresholdCredentials> credentials;
+  public Map<Long, BlsThresholdCredentials> credentials;
 
   ThresholdKeyGenContractInterface thresholdKeyGenContract;
   CrosschainDevP2PInterface p2p;
@@ -98,6 +98,22 @@ public class CrosschainKeyManager {
     this.nodeKeys = nodeKeys;
 
     this.thresholdKeyGenContract.init(nodeKeys);
+  }
+
+  /**
+   * This method is used to restore the key data from the persistent store when the node restarts.
+   *
+   * @param activeKeyGenerations Current credentials
+   * @param credentials All the credentials
+   * @param activeKeyVersion The version of the key that is active.
+   */
+  public void restore(
+      final Map<Long, ThresholdKeyGeneration> activeKeyGenerations,
+      final Map<Long, BlsThresholdCredentials> credentials,
+      final long activeKeyVersion) {
+    this.credentials = credentials;
+    this.activeKeyGenerations = activeKeyGenerations;
+    this.activeKeyVersion = activeKeyVersion;
   }
 
   public void setKeyGenerationContractAddress(final Address address) {

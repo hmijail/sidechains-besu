@@ -93,6 +93,11 @@ public class InMemoryStorageProvider implements StorageProvider {
   }
 
   @Override
+  public KeyValueStorage getCrosschainNodeStorage() {
+    return new InMemoryKeyValueStorage();
+  }
+
+  @Override
   public boolean isWorldStateIterable() {
     return true;
   }

@@ -36,5 +36,7 @@ public interface StorageProvider extends Closeable {
 
   KeyValueStorage createPruningStorage();
 
+  KeyValueStorage getCrosschainNodeStorage();
+
   boolean isWorldStateIterable();
 }
