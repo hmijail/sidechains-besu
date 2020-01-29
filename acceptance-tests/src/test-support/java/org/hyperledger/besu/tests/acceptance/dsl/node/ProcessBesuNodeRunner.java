@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.awaitility.Awaitility;
+import org.apache.logging.log4j.ThreadContext;
 
 public class ProcessBesuNodeRunner implements BesuNodeRunner {
 
@@ -58,6 +58,13 @@ public class ProcessBesuNodeRunner implements BesuNodeRunner {
 
   @Override
   public void startNode(final BesuNode node) {
+
+    if (ThreadContext.containsKey("node")) {
+      LOG.error("ThreadContext node is already set to {}", ThreadContext.get("node"));
+    }
+    assert (!ThreadContext.containsKey("node"));
+    ThreadContext.put("node", node.getName());
+
     final Path dataDir = node.homeDirectory();
 
     final List<String> params = new ArrayList<>();
@@ -256,6 +263,8 @@ public class ProcessBesuNodeRunner implements BesuNodeRunner {
     }
 
     waitForPortsFile(dataDir);
+
+    ThreadContext.remove("node");
   }
 
   private void printOutput(final BesuNode node, final Process process) {
@@ -263,11 +272,11 @@ public class ProcessBesuNodeRunner implements BesuNodeRunner {
         new BufferedReader(new InputStreamReader(process.getInputStream(), UTF_8))) {
       String line = in.readLine();
       while (line != null) {
-        PROCESS_LOG.info("{}: {}", node.getName(), line);
+        PROCESS_LOG.info(line);
         line = in.readLine();
       }
     } catch (final IOException e) {
-      LOG.error("Failed to read output from process", e);
+      LOG.error("Failed to read output from process for node " + node.getName(), e);
     }
   }
 
@@ -323,17 +332,24 @@ public class ProcessBesuNodeRunner implements BesuNodeRunner {
   private void killBesuProcess(final String name, final Process process) {
     LOG.info("Killing " + name + " process");
 
-    Awaitility.waitAtMost(30, TimeUnit.SECONDS)
-        .until(
-            () -> {
-              if (process.isAlive()) {
-                process.destroy();
-                besuProcesses.remove(name);
-                return false;
-              } else {
-                besuProcesses.remove(name);
-                return true;
-              }
-            });
+    process.destroy();
+    try {
+      process.waitFor(2, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      LOG.info("Wait for death of process " + name + " was interrupted", e);
+    }
+    if (process.isAlive()) {
+      LOG.info("Process {} still alive, destroying forcibly now");
+      try {
+        process.destroyForcibly().waitFor(2, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        // just die already
+      }
+      LOG.info("Process exited with code {}", process.exitValue());
+    }
+    Process p = besuProcesses.remove(name);
+    if (p == null) {
+      LOG.warn("Tried removing process {} but it wasn't there", name);
+    }
   }
 }
