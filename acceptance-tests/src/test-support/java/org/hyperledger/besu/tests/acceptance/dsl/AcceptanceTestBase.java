@@ -41,7 +41,6 @@ import org.hyperledger.besu.tests.acceptance.dsl.transaction.web3.Web3Transactio
 import org.apache.logging.log4j.ThreadContext;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 
