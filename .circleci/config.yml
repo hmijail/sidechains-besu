@@ -155,7 +155,7 @@ jobs:
           name: AcceptanceTests
           no_output_timeout: 40m
           environment:
-            GRADLE_MAX_TEST_FORKS: 4
+            GRADLE_MAX_TEST_FORKS: 2
           command: |
             ./gradlew --parallel acceptanceTest -Droot.log.level=DEBUG -Dacctests.showStandardStreams=true -Dacctests.keepLogs=true
       - capture_test_results

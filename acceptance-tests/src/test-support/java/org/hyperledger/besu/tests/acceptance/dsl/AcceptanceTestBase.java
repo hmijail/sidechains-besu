@@ -52,7 +52,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 import org.junit.rules.TestWatcher;
@@ -125,6 +124,20 @@ public class AcceptanceTestBase {
       new TestWatcher() {
 
         @Override
+        protected void starting(final Description description) {
+          ThreadContext.put("test", description.getMethodName());
+          ThreadContext.put("class", description.getClassName());
+          Thread.currentThread()
+              .setUncaughtExceptionHandler(
+                  (thread, error) ->
+                      LOG.error(
+                          "Uncaught exception in thread \"" + thread.getName() + "\"", error));
+          Thread.setDefaultUncaughtExceptionHandler(
+              (thread, error) ->
+                  LOG.error("Uncaught exception in thread \"" + thread.getName() + "\"", error));
+        }
+
+        @Override
         protected void failed(final Throwable e, final Description description) {
           // add the result at the end of the log so it is self-sufficient
           LOG.error(
@@ -134,26 +147,20 @@ public class AcceptanceTestBase {
 
         @Override
         protected void succeeded(final Description description) {
+          // if so configured, delete logs of successful tests
           if (!"true".equalsIgnoreCase(System.getProperty("acctests.keepLogs"))) {
-            String pathname = "build/acceptanceTestLogs/" + description.getMethodName() + ".log";
+            String pathname =
+                "build/acceptanceTestLogs/"
+                    + description.getClassName()
+                    + "."
+                    + description.getMethodName()
+                    + ".log";
             LOG.info("Test successful, deleting log at {}", pathname);
             File file = new File(pathname);
             file.delete();
           }
         }
       };
-
-  @Before
-  public void setUpAcceptanceTestBase() {
-    ThreadContext.put("test", name.getMethodName());
-    Thread.currentThread()
-        .setUncaughtExceptionHandler(
-            (thread, error) ->
-                LOG.error("Uncaught exception in thread \"" + thread.getName() + "\"", error));
-    Thread.setDefaultUncaughtExceptionHandler(
-        (thread, error) ->
-            LOG.error("Uncaught exception in thread \"" + thread.getName() + "\"", error));
-  }
 
   @After
   public void tearDownAcceptanceTestBase() {

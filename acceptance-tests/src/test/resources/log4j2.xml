@@ -11,29 +11,29 @@
       <PatternLayout pattern="%X{test} | %X{node} | %msg%n" />
     </Console>
     <Routing name="PerTestFile">
-      <Routes pattern="${ctx:test}">
+      <Routes pattern="${ctx:class}-${ctx:test}">
         <Route>
           <File
-                  name="Test-${ctx:test}"
-                  filename="build/acceptanceTestLogs/${ctx:test}.log"
+                  name="Test-${ctx:class}-${ctx:test}"
+                  filename="build/acceptanceTestLogs/${ctx:class}.${ctx:test}.log"
                   append="false"
                   createOnDemand="true"
           >
-            <PatternLayout pattern="%X{test} | %d{HH:mm:ss.SSS} | %t | %-5level | %c{1} | %msg%n" />
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} | %t | %-5level | %c{1} | %msg%n" />
           </File>
         </Route>
       </Routes>
     </Routing>
     <Routing name="PerTestSubprocessFile">
-      <Routes pattern="${ctx:test}">
+      <Routes pattern="${ctx:class}-${ctx:test}">
         <Route>
           <File
-                  name="TestSubprocess-${ctx:test}"
-                  filename="build/acceptanceTestLogs/${ctx:test}.log"
+                  name="TestSubprocess-${ctx:class}-${ctx:test}"
+                  filename="build/acceptanceTestLogs/${ctx:class}.${ctx:test}.log"
                   append="true"
                   createOnDemand="true"
           >
-            <PatternLayout pattern="%X{test} | %X{node} | %msg%n" />
+            <PatternLayout pattern="%X{node} | %msg%n" />
           </File>
         </Route>
       </Routes>
