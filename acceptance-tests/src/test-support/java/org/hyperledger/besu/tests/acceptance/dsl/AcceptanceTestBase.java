@@ -168,7 +168,7 @@ public class AcceptanceTestBase {
     String os = System.getProperty("os.name");
     String[] command = null;
     if (os.contains("Linux")) {
-      command = new String[] {"/usr/bin/top", "-n", "1", "-o", "%MEM"};
+      command = new String[] {"/usr/bin/top", "-n", "1", "-o", "%MEM", "-b"};
     }
     if (os.contains("Mac")) {
       command = new String[] {"/usr/bin/top", "-l", "1", "-o", "mem", "-n", "20"};
@@ -194,8 +194,9 @@ public class AcceptanceTestBase {
               }
             });
         memInfoProcess.waitFor();
+        LOG.debug("Memory info process exited with code {}", memInfoProcess.exitValue());
       } catch (final Exception e) {
-        LOG.warn("Error starting memory information process", e);
+        LOG.warn("Error running memory information process", e);
       }
     } else {
       LOG.info("Don't know how to report memory for OS {}", os);

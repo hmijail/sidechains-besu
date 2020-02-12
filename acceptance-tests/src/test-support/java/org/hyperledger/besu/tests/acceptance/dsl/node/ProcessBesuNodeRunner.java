@@ -279,7 +279,11 @@ public class ProcessBesuNodeRunner implements BesuNodeRunner {
         line = in.readLine();
       }
     } catch (final IOException e) {
-      LOG.error("Failed to read output from process for node " + nodeName, e);
+      if (besuProcesses.containsKey(nodeName)) {
+        LOG.error("Failed to read output from process for node " + nodeName, e);
+      } else {
+        LOG.debug("Stdout from process {} closed", nodeName);
+      }
     }
   }
 
@@ -337,6 +341,11 @@ public class ProcessBesuNodeRunner implements BesuNodeRunner {
   private void killBesuProcess(final String name, final Process process) {
     LOG.info("Killing " + name + " process");
 
+    Process p = besuProcesses.remove(name);
+    if (p == null) {
+      LOG.error("Process {} wasn't in our list", name);
+    }
+
     process.destroy();
     try {
       process.waitFor(2, TimeUnit.SECONDS);
@@ -351,10 +360,6 @@ public class ProcessBesuNodeRunner implements BesuNodeRunner {
         // just die already
       }
       LOG.info("Process exited with code {}", process.exitValue());
-    }
-    Process p = besuProcesses.remove(name);
-    if (p == null) {
-      LOG.warn("Tried removing process {} but it wasn't there", name);
     }
   }
 }
