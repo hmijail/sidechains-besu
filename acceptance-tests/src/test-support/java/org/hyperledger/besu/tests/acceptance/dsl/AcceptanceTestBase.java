@@ -12,6 +12,8 @@
  */
 package org.hyperledger.besu.tests.acceptance.dsl;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import org.hyperledger.besu.tests.acceptance.dsl.account.Accounts;
 import org.hyperledger.besu.tests.acceptance.dsl.blockchain.Blockchain;
 import org.hyperledger.besu.tests.acceptance.dsl.condition.admin.AdminConditions;
@@ -38,13 +40,26 @@ import org.hyperledger.besu.tests.acceptance.dsl.transaction.net.NetTransactions
 import org.hyperledger.besu.tests.acceptance.dsl.transaction.perm.PermissioningTransactions;
 import org.hyperledger.besu.tests.acceptance.dsl.transaction.web3.Web3Transactions;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.ProcessBuilder.Redirect;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 public class AcceptanceTestBase {
+  protected final Logger LOG = LogManager.getLogger();
 
   protected final Accounts accounts;
   protected final AccountTransactions accountTransactions;
@@ -69,6 +84,8 @@ public class AcceptanceTestBase {
   protected final PermissioningTransactions permissioningTransactions;
   protected final MinerTransactions minerTransactions;
   protected final Web3Conditions web3;
+
+  private final ExecutorService outputProcessorExecutor = Executors.newCachedThreadPool();
 
   protected AcceptanceTestBase() {
     ethTransactions = new EthTransactions();
@@ -103,13 +120,80 @@ public class AcceptanceTestBase {
 
   @Rule public final TestName name = new TestName();
 
+  @Rule
+  public TestWatcher log_eraser =
+      new TestWatcher() {
+
+        @Override
+        protected void failed(final Throwable e, final Description description) {
+          // add the result at the end of the log so it is self-sufficient
+          LOG.error(
+              "==========================================================================================");
+          LOG.error("Test failed. Reported Throwable at the point of failure:", e);
+        }
+
+        @Override
+        protected void succeeded(final Description description) {
+          if (!"true".equalsIgnoreCase(System.getProperty("acctests.keepLogs"))) {
+            String pathname = "build/acceptanceTestLogs/" + description.getMethodName() + ".log";
+            LOG.info("Test successful, deleting log at {}", pathname);
+            File file = new File(pathname);
+            file.delete();
+          }
+        }
+      };
+
   @Before
   public void setUpAcceptanceTestBase() {
     ThreadContext.put("test", name.getMethodName());
+    Thread.currentThread()
+        .setUncaughtExceptionHandler(
+            (thread, error) ->
+                LOG.error("Uncaught exception in thread \"" + thread.getName() + "\"", error));
+    Thread.setDefaultUncaughtExceptionHandler(
+        (thread, error) ->
+            LOG.error("Uncaught exception in thread \"" + thread.getName() + "\"", error));
   }
 
   @After
   public void tearDownAcceptanceTestBase() {
+
+    String os = System.getProperty("os.name");
+    String[] command = null;
+    if (os.contains("Linux")) {
+      command = new String[] {"/usr/bin/top", "-n", "1", "-o", "%MEM"};
+    }
+    if (os.contains("Mac")) {
+      command = new String[] {"/usr/bin/top", "-l", "1", "-o", "mem", "-n", "20"};
+    }
+    if (command != null) {
+      LOG.info("Memory usage at end of test:");
+      final ProcessBuilder processBuilder =
+          new ProcessBuilder(command).redirectErrorStream(true).redirectInput(Redirect.INHERIT);
+      try {
+        final Process memInfoProcess = processBuilder.start();
+        outputProcessorExecutor.execute(
+            () -> {
+              try (final BufferedReader in =
+                  new BufferedReader(
+                      new InputStreamReader(memInfoProcess.getInputStream(), UTF_8))) {
+                String line = in.readLine();
+                while (line != null) {
+                  LOG.info(line);
+                  line = in.readLine();
+                }
+              } catch (final IOException e) {
+                LOG.warn("Failed to read output from memory information process: ", e);
+              }
+            });
+        memInfoProcess.waitFor();
+      } catch (final Exception e) {
+        LOG.warn("Error starting memory information process", e);
+      }
+    } else {
+      LOG.info("Don't know how to report memory for OS {}", os);
+    }
+
     cluster.close();
   }
 }

@@ -125,7 +125,7 @@ task acceptanceTest(type: Test) {
   testLogging {
     exceptionFormat = 'full'
     showStackTraces = true
-    //showStandardStreams = true
+    showStandardStreams = 'true'.equalsIgnoreCase(System.getProperty('acctests.showStandardStreams'));
     showExceptions = true
     showCauses = true
   }
