@@ -168,7 +168,7 @@ public class AcceptanceTestBase {
     String os = System.getProperty("os.name");
     String[] command = null;
     if (os.contains("Linux")) {
-      command = new String[] {"/usr/bin/top", "-n", "1", "-o", "%MEM", "-b", "-c"};
+      command = new String[] {"/usr/bin/top", "-n", "1", "-o", "%MEM", "-b", "-c", "-w", "150"};
     }
     if (os.contains("Mac")) {
       command = new String[] {"/usr/bin/top", "-l", "1", "-o", "mem", "-n", "20"};
