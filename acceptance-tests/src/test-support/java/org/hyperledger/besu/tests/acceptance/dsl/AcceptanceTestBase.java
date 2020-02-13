@@ -177,23 +177,23 @@ public class AcceptanceTestBase {
     if (command != null) {
       LOG.info("Memory usage at end of test:");
       final ProcessBuilder processBuilder =
-              new ProcessBuilder(command).redirectErrorStream(true).redirectInput(Redirect.INHERIT);
+          new ProcessBuilder(command).redirectErrorStream(true).redirectInput(Redirect.INHERIT);
       try {
         final Process memInfoProcess = processBuilder.start();
         outputProcessorExecutor.execute(
-                () -> {
-                  try (final BufferedReader in =
-                               new BufferedReader(
-                                       new InputStreamReader(memInfoProcess.getInputStream(), UTF_8))) {
-                    String line = in.readLine();
-                    while (line != null) {
-                      LOG.info(line);
-                      line = in.readLine();
-                    }
-                  } catch (final IOException e) {
-                    LOG.warn("Failed to read output from memory information process: ", e);
-                  }
-                });
+            () -> {
+              try (final BufferedReader in =
+                  new BufferedReader(
+                      new InputStreamReader(memInfoProcess.getInputStream(), UTF_8))) {
+                String line = in.readLine();
+                while (line != null) {
+                  LOG.info(line);
+                  line = in.readLine();
+                }
+              } catch (final IOException e) {
+                LOG.warn("Failed to read output from memory information process: ", e);
+              }
+            });
         memInfoProcess.waitFor();
         LOG.debug("Memory info process exited with code {}", memInfoProcess.exitValue());
       } catch (final Exception e) {
