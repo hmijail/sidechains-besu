@@ -157,7 +157,7 @@ jobs:
           environment:
             GRADLE_MAX_TEST_FORKS: 3
           command: |
-            ./gradlew --parallel acceptanceTest -Droot.log.level=DEBUG -Dacctests.showStandardStreams=true -Dacctests.keepLogs=true
+            ./gradlew --parallel acceptanceTest -Droot.log.level=DEBUG -Dacctests.showStandardStreams=true
       - capture_test_results
       - store_artifacts:
           path: acceptance-tests/build/reports

@@ -52,6 +52,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 import org.junit.rules.TestWatcher;
@@ -148,7 +149,7 @@ public class AcceptanceTestBase {
         @Override
         protected void succeeded(final Description description) {
           // if so configured, delete logs of successful tests
-          if (!"true".equalsIgnoreCase(System.getProperty("acctests.keepLogs"))) {
+          if (!Boolean.getBoolean("acctests.keepLogs")) {
             String pathname =
                 "build/acceptanceTestLogs/"
                     + description.getClassName()
@@ -164,11 +165,12 @@ public class AcceptanceTestBase {
 
   @After
   public void tearDownAcceptanceTestBase() {
+    cluster.close();
 
     String os = System.getProperty("os.name");
     String[] command = null;
     if (os.contains("Linux")) {
-      command = new String[] {"/usr/bin/top", "-n", "1", "-o", "%MEM", "-b", "-c", "-w", "150"};
+      command = new String[] {"/usr/bin/top", "-n", "1", "-o", "%MEM", "-b", "-c", "-w", "180"};
     }
     if (os.contains("Mac")) {
       command = new String[] {"/usr/bin/top", "-l", "1", "-o", "mem", "-n", "20"};
@@ -176,23 +178,23 @@ public class AcceptanceTestBase {
     if (command != null) {
       LOG.info("Memory usage at end of test:");
       final ProcessBuilder processBuilder =
-          new ProcessBuilder(command).redirectErrorStream(true).redirectInput(Redirect.INHERIT);
+              new ProcessBuilder(command).redirectErrorStream(true).redirectInput(Redirect.INHERIT);
       try {
         final Process memInfoProcess = processBuilder.start();
         outputProcessorExecutor.execute(
-            () -> {
-              try (final BufferedReader in =
-                  new BufferedReader(
-                      new InputStreamReader(memInfoProcess.getInputStream(), UTF_8))) {
-                String line = in.readLine();
-                while (line != null) {
-                  LOG.info(line);
-                  line = in.readLine();
-                }
-              } catch (final IOException e) {
-                LOG.warn("Failed to read output from memory information process: ", e);
-              }
-            });
+                () -> {
+                  try (final BufferedReader in =
+                               new BufferedReader(
+                                       new InputStreamReader(memInfoProcess.getInputStream(), UTF_8))) {
+                    String line = in.readLine();
+                    while (line != null) {
+                      LOG.info(line);
+                      line = in.readLine();
+                    }
+                  } catch (final IOException e) {
+                    LOG.warn("Failed to read output from memory information process: ", e);
+                  }
+                });
         memInfoProcess.waitFor();
         LOG.debug("Memory info process exited with code {}", memInfoProcess.exitValue());
       } catch (final Exception e) {
@@ -201,7 +203,5 @@ public class AcceptanceTestBase {
     } else {
       LOG.info("Don't know how to report memory for OS {}", os);
     }
-
-    cluster.close();
   }
 }
