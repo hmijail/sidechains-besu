@@ -69,7 +69,7 @@ public abstract class AbstractPrecompiledContract implements PrecompiledContract
    *
    * @param input RLP input
    * @param length encoded size of the parameter being extracted
-   * @return
+   * @return the extracted parameter
    */
   protected BigInteger extractParameter(final BytesValue input, final int length) {
     BigInteger result = extractParameter(input, this.offset, length);
